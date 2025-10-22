@@ -31,6 +31,15 @@ services:
       - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     networks:
       - fabrica-network
+    command: >
+      bash -c "
+      if [ ! -f /usr/local/bin/wp ]; then
+        curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar &&
+        chmod +x wp-cli.phar &&
+        mv wp-cli.phar /usr/local/bin/wp;
+      fi;
+      apache2-foreground"
+
   # nginx:
   #   image: nginx:latest
   #   container_name: museu-nginx
