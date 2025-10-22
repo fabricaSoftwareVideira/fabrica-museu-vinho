@@ -12,11 +12,11 @@ services:
     volumes:
       - ./data/db:/var/lib/mysql
     networks:
-      - wpnet
+      - fabrica-network
 
   wordpress:
-    image: wordpress:php8.2-fpm
-    container_name: wp-app
+    image: wordpress:6.8.3-php8.1-apache
+    container_name: museu-app
     restart: always
     depends_on:
       - db
@@ -28,123 +28,23 @@ services:
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
     volumes:
       - ./data/wordpress:/var/www/html
+      - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     networks:
-      - wpnet
-
-  nginx:
-    image: nginx:latest
-    container_name: wp-nginx
-    restart: always
-    depends_on:
-      - wordpress
-    ports:
-      - "8080:80"
-    volumes:
-      - ./data/wordpress:/var/www/html:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - wpnet
+      - fabrica-network
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: museu-nginx
+  #   restart: always
+  #   depends_on:
+  #     - wordpress
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./data/wordpress:/var/www/html:ro
+  #     - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+  #   networks:
+  #     - fabrica-network
 
 networks:
-  wpnet:
-    driver: bridge
-
-
-# services:
-#   db:
-#     image: mariadb:12.0
-#     container_name: museu-db
-#     restart: unless-stopped
-#     environment:
-#       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-#       MYSQL_DATABASE: ${MYSQL_DATABASE}
-#       MYSQL_USER: ${MYSQL_USER}
-#       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-#     volumes:
-#       - db_data:/var/lib/mysql
-#     networks:
-#       - museu_net
-
-#   wordpress:
-#     image: wordpress:6.8.3-php8.1-apache
-#     container_name: museu-wp
-#     depends_on:
-#       - db
-#     restart: unless-stopped
-#     environment:
-#       WORDPRESS_DB_HOST: db:3306
-#       WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
-#       WORDPRESS_DB_USER: ${MYSQL_USER}
-#       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
-#       WORDPRESS_CONFIG_EXTRA: |
-#         define('WP_REDIS_HOST', 'redis');
-#         define('WP_MEMORY_LIMIT', '1024M');
-#     ports:
-#       - "9000:80"
-#     volumes:
-#       - wordpress_data:/var/www/html
-#       - ./wordpress/uploads:/var/www/html/wp-content/uploads
-#       - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
-#     networks:
-#       - museu_net
-
-#   nginx:
-#     image: nginx:latest
-#     container_name: museu-nginx
-#     depends_on:
-#       - wordpress
-#     volumes:
-#       # - ./wordpress:/var/www/html
-#       # - ./wordpress/nginx.conf:/etc/nginx/conf.d/default.conf
-#       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-#     restart: unless-stopped
-#     networks:
-#       - museu_net
-
-#   certbot:
-#     image: certbot/certbot
-#     container_name: museu-certbot
-#     depends_on:
-#       - nginx
-#     volumes:
-#       - certbot_www:/var/www/certbot
-#       - letsencrypt:/etc/letsencrypt
-#     entrypoint: >
-#       sh -c "
-#         trap exit TERM;
-#         while :; do
-#           certbot renew --webroot -w /var/www/certbot --quiet;
-#           sleep 12h;
-#         done
-#       "
-
-#   redis:
-#     image: redis:alpine
-#     container_name: museu-redis
-#     restart: unless-stopped
-#     networks:
-#       - museu_net
-
-#   elasticsearch:
-#     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.10
-#     container_name: museu-elasticsearch
-#     environment:
-#       - discovery.type=single-node
-#       - xpack.security.enabled=false
-#       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-#     volumes:
-#       - esdata:/usr/share/elasticsearch/data
-#     networks:
-#       - museu_net
-#     restart: unless-stopped
-
-# volumes:
-#   db_data:
-#   wordpress_data:
-#   certbot_www:
-#   letsencrypt:
-#   esdata:
-
-# networks:
-#   museu_net:
-#     driver: bridge
+  fabrica-network:
+    external: true
