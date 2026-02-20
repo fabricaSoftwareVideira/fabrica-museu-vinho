@@ -1,0 +1,106 @@
+services:
+  db:
+    image: mariadb:12
+    container_name: museu-db
+    restart: always
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./data/db:/var/lib/mysql
+    networks:
+      - fabrica-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  wordpress:
+    image: wordpress:6.8.3-php8.1-apache
+    container_name: museu-app
+    restart: always
+    depends_on:
+      db: 
+        condition: service_healthy
+    env_file: .env
+    environment:
+      WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+    volumes:
+      - ./data/wordpress:/var/www/html
+      - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+    networks:
+      - fabrica-network
+
+    # WP-CLI como serviço separado, roda sob demanda (docker compose run wpcli wp ...)
+  wpcli:
+    image: wordpress:cli-php8.3
+    user: "33:33"                # mesmo uid:gid do www-data usado pelo container wordpress
+    container_name: museu-wpcli
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+    volumes:
+      - ./data/wordpress:/var/www/html
+    networks:
+      - fabrica-network
+    profiles: ["tools"]
+
+
+networks:
+  fabrica-network:
+    external: true
+    
+  # wp-cron:
+  #   image: wordpress:6.8.3-php8.1-apache
+  #   container_name: museu-cron
+  #   restart: always
+  #   depends_on:
+  #     - wordpress
+  #     - db
+  #   env_file: .env
+  #   environment:
+  #     WORDPRESS_DB_HOST: ${WORDPRESS_DB_HOST}
+  #     WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+  #     WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+  #     WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+  #   volumes:
+  #     - ./data/wordpress:/var/www/html
+  #     - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+  #   networks:
+  #     - fabrica-network
+  #   command: >
+  #     bash -c "
+  #     while true; do
+  #       sleep 60;
+  #       php /var/www/html/wp-cron.php > /dev/null 2>&1 || true;
+  #     done"
+
+
+
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: museu-nginx
+  #   restart: always
+  #   depends_on:
+  #     - wordpress
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./data/wordpress:/var/www/html:ro
+  #     - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+  #   networks:
+  #     - fabrica-network
