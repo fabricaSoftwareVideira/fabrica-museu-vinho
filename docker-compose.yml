@@ -1,7 +1,7 @@
 services:
 
   db:
-    image: mariadb:10.11  # 12 não existe ainda em 2025 — usar versão estável
+    image: mariadb:12
     container_name: museu-db
     restart: unless-stopped
     env_file: .env
